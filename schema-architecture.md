@@ -16,23 +16,23 @@ The application also implements JWT-based authentication to secure endpoints and
 
 Section 2: Numbered Flow of Data and Control
 
-User Interaction:
+1. User Interaction:
 A user (Admin, Doctor, or Patient) accesses the system through either a web dashboard (Thymeleaf templates) or REST API endpoints.
 
-Routing to Controllers:
+2. Routing to Controllers:
 Requests are routed to the appropriate MVC controller (for web views) or REST controller (for API operations).
 
-Authentication & Authorization:
+3. Authentication & Authorization:
 Before accessing protected resources, users are authenticated using JWT tokens, and role-based permissions determine the actions they can perform.
 
-Service Layer Invocation:
+4. Service Layer Invocation:
 The controller delegates the request to a service layer, which contains the business logic for processing data or executing transactions.
 
-Repository Access:
+5. Repository Access:
 The service layer communicates with JPA repositories (for MySQL) or MongoDB repositories to fetch, insert, update, or delete data.
 
-Data Persistence and Retrieval:
+6. Data Persistence and Retrieval:
 MySQL handles structured, relational data like user profiles and appointments, while MongoDB manages flexible data structures such as prescriptions.
 
-Response Handling:
+7. Response Handling:
 The processed data or operation results are returned from the service layer to the controller, which then sends either a rendered HTML page (via Thymeleaf) or a JSON response (via REST API) back to the client.
