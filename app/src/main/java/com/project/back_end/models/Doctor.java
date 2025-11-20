@@ -41,8 +41,7 @@ public class Doctor {
     private String password;
 
     @NotNull(message = "Phone number is required")
-    @Pattern(regexp = "\\d{10}", message = "Phone number must be 10 digits")
-    @Column(nullable = false, length = 10)
+    @Column(nullable = false, length = 12)
     private String phone;
 
     @ElementCollection(fetch = FetchType.EAGER)
