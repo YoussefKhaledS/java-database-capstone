@@ -1,5 +1,6 @@
 package com.project.back_end.models;
 
+import jakarta.persistence.OneToOne;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.Document;
 import lombok.Data;
@@ -9,7 +10,7 @@ import lombok.AllArgsConstructor;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 
-@Document(collection = "prescriptions")
+@Document(collection = "prescription")
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
