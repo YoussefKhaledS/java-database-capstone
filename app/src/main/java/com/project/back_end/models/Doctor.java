@@ -16,7 +16,13 @@ import java.util.List;
 public class Doctor {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "my_entity_seq")
+    @SequenceGenerator(
+            name = "my_entity_seq",
+            sequenceName = "my_entity_seq", // Name of the sequence in the database
+            initialValue = 1, // Start the sequence at 1
+            allocationSize = 1 // Increment by 1
+    )
     private Long id;
 
     @NotNull(message = "Name is required")
