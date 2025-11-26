@@ -1,5 +1,6 @@
 package com.project.back_end.DTO;
 
+import com.project.back_end.models.Appointment;
 import lombok.Data;
 
 import java.time.LocalDate;
@@ -50,6 +51,29 @@ public class AppointmentDTO {
         this.appointmentDate = appointmentTime.toLocalDate();
         this.appointmentTimeOnly = appointmentTime.toLocalTime();
         this.endTime = appointmentTime.plusHours(1);
+    }
+    public AppointmentDTO(Appointment appointment) {
+        this.id = appointment.getId();
+
+        // Doctor info
+        this.doctorId = appointment.getDoctor().getId();
+        this.doctorName = appointment.getDoctor().getName();
+
+        // Patient info
+        this.patientId = appointment.getPatient().getId();
+        this.patientName = appointment.getPatient().getName();
+        this.patientEmail = appointment.getPatient().getEmail();
+        this.patientPhone = appointment.getPatient().getPhone();
+        this.patientAddress = appointment.getPatient().getAddress();
+
+        // Appointment info
+        this.appointmentTime = appointment.getAppointmentTime();
+        this.status = appointment.getStatus();
+
+        // Automatically computed fields
+        this.appointmentDate = appointment.getAppointmentTime().toLocalDate();
+        this.appointmentTimeOnly = appointment.getAppointmentTime().toLocalTime();
+        this.endTime = appointment.getAppointmentTime().plusHours(1);
     }
 
 // 14. Constructor:

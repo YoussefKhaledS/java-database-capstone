@@ -66,7 +66,7 @@ public class AppointmentService {
     @Transactional
     public ResponseEntity<Map<String, String>> cancelAppointment(Long id, String token) throws Exception {
         // 1️⃣ Validate the token first
-        Map<String, String> validationResult = tokenService.validateToken(token, "patient"); // or "admin" depending on the role
+        Map<String, String> validationResult = null ; // tokenService.validateToken(token, "patient"); // or "admin" depending on the role
 
         if (!validationResult.isEmpty()) {
             // Token is invalid
@@ -94,7 +94,7 @@ public class AppointmentService {
         Map<String, Object> response = new HashMap<>();
 
         // 1️⃣ Validate token (doctor role assumed)
-        Map<String, String> validationResult = tokenService.validateToken(token, "doctor");
+        Map<String, String> validationResult = null ; //tokenService.validateToken(token, "doctor");
         if (!validationResult.isEmpty()) {
             response.put("error", "Invalid or expired token");
             return response;

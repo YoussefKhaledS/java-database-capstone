@@ -34,7 +34,7 @@ public class Patient {
     private String password;
 
     @NotNull(message = "Phone number is required")
-    @Column(nullable = false, length = 10)
+    @Column(nullable = false, length = 12)
     private String phone;
 
     @NotNull(message = "Address is required")
