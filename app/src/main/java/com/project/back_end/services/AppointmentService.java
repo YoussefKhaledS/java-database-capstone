@@ -121,6 +121,11 @@ public class AppointmentService {
         response.put("appointments", appointments);
         return response;
     }
+
+    @Transactional
+    public void changeStatus(Long appointmentId, int status) {
+        appointmentRepository.updateStatus(status, appointmentId);
+    }
 // 4. **Book Appointment Method**:
 //    - Responsible for saving the new appointment to the database.
 //    - If the save operation fails, it returns `0`; otherwise, it returns `1`.

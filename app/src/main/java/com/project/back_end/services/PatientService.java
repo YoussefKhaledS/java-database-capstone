@@ -41,7 +41,7 @@ public class PatientService {
     public ResponseEntity<Map<String, Object>> getPatientAppointment(Long id, String token) {
         try {
             // 1. Decode token to get email
-            String emailFromToken = tokenService.getEmailFromToken(token);
+            String emailFromToken = tokenService.extractIdentifier(token);
 
             // 2. Fetch patient by email
             Patient patient = patientRepository.findByEmail(emailFromToken);
@@ -129,7 +129,7 @@ public class PatientService {
     @Transactional
     public ResponseEntity<Map<String , Object>> getPatientDetails(String token){
         try{
-            String emailFromToken = tokenService.getEmailFromToken(token);
+            String emailFromToken = tokenService.extractIdentifier(token);
             Patient patient = patientRepository.findByEmail(emailFromToken);
             if(patient == null){
                 return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
