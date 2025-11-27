@@ -30,15 +30,15 @@ public class Service {
 
     public ResponseEntity<Map<String, String>> validateToken(String token, String user) {
         // Call your token service to validate the token
-        String validationResponse = tokenService.validateToken(token, user);
+        Boolean validationResponse = tokenService.validateToken(token, user);
 
-        if (validationResponse.isEmpty()) {
+        if (validationResponse) {
             // Token is valid
             return ResponseEntity.ok(Map.of("message", "Token is valid"));
         } else {
             // Token is invalid or expired
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                    .body(Map.of("error", validationResponse));
+                    .body(Map.of("error", "Invalid Token"));
         }
     }
 
@@ -51,7 +51,7 @@ public class Service {
                         .body(Map.of("error", "Admin not found"));
             }
             if(foundAdmin.getPasswordHash().equals(admin.getPasswordHash())){
-                String token = tokenService.generateToken(foundAdmin.getUsername(), "admin");
+                String token = tokenService.generateToken(foundAdmin.getUsername());
                 return ResponseEntity.ok(Map.of("token", token));
             } else {
                 return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
@@ -113,7 +113,7 @@ public class Service {
                     .body(Map.of("error", "Patient not found"));
         }
         if(patient.getPassword().equals(login.getPassword())){
-            String token = tokenService.generateToken(patient.getEmail(), "patient");
+            String token = tokenService.generateToken(patient.getEmail());
             return ResponseEntity.ok(Map.of("token", token));
         } else {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
@@ -121,7 +121,7 @@ public class Service {
         }
     }
     public ResponseEntity<Map<String , Object>> filterPatient(String condition, String doctorName, String token){
-        String email = tokenService.extractEmail(token);
+        String email = tokenService.extractIdentifier(token);
         if(email == null || email.isEmpty()){
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
                     .body(Map.of("error", "Invalid token"));

@@ -107,7 +107,7 @@ public class DoctorService {
             if(!existingDoctor.getPassword().equals(password)){
                 return ResponseEntity.status(401).body(Map.of("error","Invalid password"));
             }
-            String token = tokenService.generateToken(existingDoctor.getId(), "DOCTOR");
+            String token = tokenService.generateToken(existingDoctor.getEmail());
             return ResponseEntity.ok(Map.of("token",token));
         }catch (Exception e){
             return ResponseEntity.status(500).body(Map.of("error","Internal server error"));
