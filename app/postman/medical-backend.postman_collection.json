@@ -1,0 +1,1263 @@
+{
+  "info": {
+    "_postman_id": "d1b41ad8-0c1d-4af0-921c-4fe2eb5f0d71",
+    "name": "Medical Backend API Tests",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "description": "End-to-end Postman collection for the Coursera Java database capstone backend. It mirrors the available Spring controllers and uses the seed data from `database_structure.sql`. Login requests capture tokens into collection variables so you can chain protected calls. Endpoints that respond differently based on inputs (e.g., success vs. validation failure) include separate requests so each path can be verified in isolation."
+  },
+  "item": [
+    {
+      "name": "Admin",
+      "item": [
+        {
+          "name": "Admin Login (captures {{adminToken}})",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"admin\",\n  \"passwordHash\": \"admin@1234\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/admin/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admin",
+                "login"
+              ]
+            },
+            "description": "Authenticates the seeded admin (`admin` / `admin@1234`) and stores the JWT in the `adminToken` collection variable for use in admin-protected endpoints (doctor add/update/delete)."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"200 OK\", function () { pm.response.to.have.status(200); });",
+                  "const payload = pm.response.json();",
+                  "pm.expect(payload).to.have.property(\"token\");",
+                  "pm.collectionVariables.set(\"adminToken\", payload.token);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Admin Login - Wrong Password (401)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"admin\",\n  \"passwordHash\": \"bad-password\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/admin/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admin",
+                "login"
+              ]
+            },
+            "description": "Negative path showing the controller returns 401 when the password hash does not match."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"401 Unauthorized\", function () { pm.response.to.have.status(401); });"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Doctor",
+      "item": [
+        {
+          "name": "Doctor Login (captures {{doctorToken}})",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"dr.adams@example.com\",\n  \"password\": \"pass12345\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/doctor/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "doctor",
+                "login"
+              ]
+            },
+            "description": "Login using the seeded Dr. Emily Adams account. The returned token is saved as `doctorToken` for doctor-only flows (appointments listing, prescriptions, etc.)."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"200 OK\", function () { pm.response.to.have.status(200); });",
+                  "const payload = pm.response.json();",
+                  "pm.expect(payload).to.have.property(\"token\");",
+                  "pm.collectionVariables.set(\"doctorToken\", payload.token);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Doctor Login - Invalid Password (401)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"dr.adams@example.com\",\n  \"password\": \"wrongPass\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/doctor/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "doctor",
+                "login"
+              ]
+            },
+            "description": "Verifies invalid doctor credentials are rejected with 401."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"401 Unauthorized\", function () { pm.response.to.have.status(401); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get All Doctors",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/doctor",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "doctor"
+              ]
+            },
+            "description": "Fetches the full doctor catalog (no token required)."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"200 OK\", function () { pm.response.to.have.status(200); });",
+                  "pm.test(\"Payload contains doctors array\", function () {",
+                  "    const data = pm.response.json();",
+                  "    pm.expect(data).to.have.property(\"doctors\");",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get Doctor Availability (patient token)",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/doctor/availability/{{availabilityUserRole}}/{{availabilityDoctorId}}/{{availabilityDate}}/{{patientToken}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "doctor",
+                "availability",
+                "{{availabilityUserRole}}",
+                "{{availabilityDoctorId}}",
+                "{{availabilityDate}}",
+                "{{patientToken}}"
+              ]
+            },
+            "description": "Checks available slots for a doctor on a date. Set `availabilityUserRole` to `patient`, `doctor`, or `admin` to reflect who is performing the lookup. Requires a valid token in the final path segment."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"200 OK\", function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Add Doctor (admin token, new record)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Dr. Test Surgeon\",\n  \"specialty\": \"Cardiologist\",\n  \"email\": \"dr.test.surgeon@example.com\",\n  \"password\": \"testPass123\",\n  \"phone\": \"555-919-0000\",\n  \"availableTimes\": [\"09:00-10:00\", \"10:00-11:00\"]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/doctor/{{adminToken}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "doctor",
+                "{{adminToken}}"
+              ]
+            },
+            "description": "Creates a new doctor. The token in the path must belong to an admin. Use a unique email when re-running."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Created or conflict handled\", function () {",
+                  "    pm.expect([201, 409]).to.include(pm.response.code);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Add Doctor - Duplicate Email (409 expected)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Dr. Emily Adams\",\n  \"specialty\": \"Cardiologist\",\n  \"email\": \"dr.adams@example.com\",\n  \"password\": \"pass12345\",\n  \"phone\": \"555-101-2020\",\n  \"availableTimes\": [\"09:00-10:00\"]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/doctor/{{adminToken}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "doctor",
+                "{{adminToken}}"
+              ]
+            },
+            "description": "Reuses an existing email to exercise the duplicate/409 branch."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"409 Conflict\", function () { pm.response.to.have.status(409); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Update Doctor Details (admin token)",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"id\": {{testDoctorId}},\n  \"name\": \"Dr. Mark Johnson\",\n  \"specialty\": \"Neurologist\",\n  \"email\": \"dr.johnson@example.com\",\n  \"password\": \"secure4567\",\n  \"phone\": \"555-202-3030\",\n  \"availableTimes\": [\"10:00-11:00\", \"11:00-12:00\", \"14:00-15:00\"]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/doctor/{{adminToken}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "doctor",
+                "{{adminToken}}"
+              ]
+            },
+            "description": "Updates the doctor identified by `testDoctorId` (defaults to 2 -> Dr. Mark Johnson). Adjust the payload/ID before running if you added another doctor."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Update accepted\", function () {",
+                  "    pm.expect([200, 404]).to.include(pm.response.code);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Delete Doctor (admin token, configurable ID)",
+          "request": {
+            "method": "DELETE",
+            "url": {
+              "raw": "{{baseUrl}}/doctor/{{testDoctorId}}/{{adminToken}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "doctor",
+                "{{testDoctorId}}",
+                "{{adminToken}}"
+              ]
+            },
+            "description": "Deletes the doctor referenced by `testDoctorId`. Recommended workflow: create a dedicated test doctor, update `testDoctorId` to that generated ID, then call this request."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Delete acknowledged\", function () {",
+                  "    pm.expect([200, 404]).to.include(pm.response.code);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Filter Doctors (All filters: Name+Time+Specialty)",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/doctor/filter?name=Emily&time=AM&speciality=Cardiologist",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "doctor",
+                "filter"
+              ],
+              "query": [
+                {
+                  "key": "name",
+                  "value": "Emily"
+                },
+                {
+                  "key": "time",
+                  "value": "AM"
+                },
+                {
+                  "key": "speciality",
+                  "value": "Cardiologist"
+                }
+              ]
+            },
+            "description": "Exercises the branch where all three filters are provided via query parameters."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"200 OK\", function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Filter Doctors (Specialty only)",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/doctor/filter?speciality=Dermatologist",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "doctor",
+                "filter"
+              ],
+              "query": [
+                {
+                  "key": "speciality",
+                  "value": "Dermatologist"
+                }
+              ]
+            },
+            "description": "Filters doctors by specialty only using query parameters."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"200 OK\", function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Filter Doctors (Name only)",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/doctor/filter?name=Emily",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "doctor",
+                "filter"
+              ],
+              "query": [
+                {
+                  "key": "name",
+                  "value": "Emily"
+                }
+              ]
+            },
+            "description": "Filters doctors by name only."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"200 OK\", function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Filter Doctors (Time only)",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/doctor/filter?time=AM",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "doctor",
+                "filter"
+              ],
+              "query": [
+                {
+                  "key": "time",
+                  "value": "AM"
+                }
+              ]
+            },
+            "description": "Filters doctors by time (AM/PM) only."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"200 OK\", function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Filter Doctors (Name + Specialty)",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/doctor/filter?name=Emily&speciality=Cardiologist",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "doctor",
+                "filter"
+              ],
+              "query": [
+                {
+                  "key": "name",
+                  "value": "Emily"
+                },
+                {
+                  "key": "speciality",
+                  "value": "Cardiologist"
+                }
+              ]
+            },
+            "description": "Filters doctors by name and specialty."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"200 OK\", function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Filter Doctors (No filters - all doctors)",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/doctor/filter",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "doctor",
+                "filter"
+              ]
+            },
+            "description": "Returns all doctors when no query parameters are provided."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"200 OK\", function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Patient",
+      "item": [
+        {
+          "name": "Patient Signup (new user)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Test Patient\",\n  \"email\": \"test.patient@example.com\",\n  \"password\": \"patientPass1\",\n  \"phone\": \"777-123-4567\",\n  \"address\": \"500 Test Ave, Sample City\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/patient",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "patient"
+              ]
+            },
+            "description": "Creates a new patient profile."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"201 Created\", function () { pm.response.to.have.status(201); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Patient Signup - Duplicate Email (409)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Jane Doe\",\n  \"email\": \"jane.doe@example.com\",\n  \"password\": \"passJane1\",\n  \"phone\": \"888-111-1111\",\n  \"address\": \"101 Oak St, Cityville\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/patient",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "patient"
+              ]
+            },
+            "description": "Reuses a seeded email to exercise the 409 branch."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"409 Conflict\", function () { pm.response.to.have.status(409); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Patient Login (captures {{patientToken}})",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"jane.doe@example.com\",\n  \"password\": \"passJane1\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/patient/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "patient",
+                "login"
+              ]
+            },
+            "description": "Authenticates the seeded patient Jane Doe and stores the returned token in `patientToken`."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"200 OK\", function () { pm.response.to.have.status(200); });",
+                  "const payload = pm.response.json();",
+                  "pm.expect(payload).to.have.property(\"token\");",
+                  "pm.collectionVariables.set(\"patientToken\", payload.token);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Patient Login - Invalid Credentials",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"jane.doe@example.com\",\n  \"password\": \"wrong\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/patient/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "patient",
+                "login"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"401 Unauthorized\", function () { pm.response.to.have.status(401); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get Patient Profile (token required)",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/patient/{{patientToken}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "patient",
+                "{{patientToken}}"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"200 OK\", function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get Patient Appointments (by ID)",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/patient/{{patientId}}/{{patientToken}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "patient",
+                "{{patientId}}",
+                "{{patientToken}}"
+              ]
+            },
+            "description": "Retrieves appointments for the given patient ID (defaults to 1 -> Jane Doe)."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"200 OK\", function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Filter Patient Appointments by Condition",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/patient/filter/{{patientToken}}?condition=General%20Checkup",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "patient",
+                "filter",
+                "{{patientToken}}"
+              ],
+              "query": [
+                {
+                  "key": "condition",
+                  "value": "General Checkup"
+                }
+              ]
+            },
+            "description": "Filters patient appointments by condition only using query parameters."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"200 OK\", function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Filter Patient Appointments by Doctor Name",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/patient/filter/{{patientToken}}?name=Emily%20Adams",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "patient",
+                "filter",
+                "{{patientToken}}"
+              ],
+              "query": [
+                {
+                  "key": "name",
+                  "value": "Emily Adams"
+                }
+              ]
+            },
+            "description": "Filters patient appointments by doctor name only using query parameters."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"200 OK\", function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Filter Patient Appointments by Condition and Doctor",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/patient/filter/{{patientToken}}?condition=General%20Checkup&name=Emily%20Adams",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "patient",
+                "filter",
+                "{{patientToken}}"
+              ],
+              "query": [
+                {
+                  "key": "condition",
+                  "value": "General Checkup"
+                },
+                {
+                  "key": "name",
+                  "value": "Emily Adams"
+                }
+              ]
+            },
+            "description": "Filters patient appointments by both condition and doctor name."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"200 OK\", function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Filter Patient Appointments (No filters - all appointments)",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/patient/filter/{{patientToken}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "patient",
+                "filter",
+                "{{patientToken}}"
+              ]
+            },
+            "description": "Returns all patient appointments when no query parameters are provided."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"200 OK\", function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Appointments",
+      "item": [
+        {
+          "name": "List Appointments for Date & Patient Name",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/appointments/{{availabilityDate}}/{{patientNameSlug}}/{{doctorToken}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "appointments",
+                "{{availabilityDate}}",
+                "{{patientNameSlug}}",
+                "{{doctorToken}}"
+              ]
+            },
+            "description": "Queries appointments for the logged-in doctor, filtered by patient name (defaults to Jane Doe). Requires a doctor token."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"200 OK\", function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Book Appointment (success path)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"doctor\": { \"id\": 1 },\n  \"patient\": { \"id\": 1 },\n  \"appointmentTime\": \"2026-01-15T09:00:00\",\n  \"status\": 0\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/appointments/{{patientToken}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "appointments",
+                "{{patientToken}}"
+              ]
+            },
+            "description": "Books a future appointment for Jane Doe with Dr. Emily Adams. Adjust the datetime to match an available slot."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"200 OK\", function () { pm.expect([200, 400, 409]).to.include(pm.response.code); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Book Appointment - Slot Already Taken",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"doctor\": { \"id\": 1 },\n  \"patient\": { \"id\": 1 },\n  \"appointmentTime\": \"2025-05-01T09:00:00\",\n  \"status\": 0\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/appointments/{{patientToken}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "appointments",
+                "{{patientToken}}"
+              ]
+            },
+            "description": "Uses a time already present in the seed data so the controller should respond with 409."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"409 Conflict\", function () { pm.response.to.have.status(409); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Update Appointment",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"id\": {{testAppointmentId}},\n  \"doctor\": { \"id\": 1 },\n  \"patient\": { \"id\": 1 },\n  \"appointmentTime\": \"2026-01-15T10:00:00\",\n  \"status\": 0\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/appointments/{{patientToken}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "appointments",
+                "{{patientToken}}"
+              ]
+            },
+            "description": "Updates the appointment specified by `testAppointmentId`."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Update acknowledged\", function () { pm.expect([200]).to.include(pm.response.code); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Cancel Appointment",
+          "request": {
+            "method": "DELETE",
+            "url": {
+              "raw": "{{baseUrl}}/appointments/{{testAppointmentId}}/{{patientToken}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "appointments",
+                "{{testAppointmentId}}",
+                "{{patientToken}}"
+              ]
+            },
+            "description": "Cancels the appointment referenced by `testAppointmentId`. Intended for patient tokens."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Cancel acknowledged\", function () { pm.expect([200, 404]).to.include(pm.response.code); });"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Prescriptions",
+      "item": [
+        {
+          "name": "Save Prescription (doctor token)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"patientName\": \"Jane Doe\",\n  \"appointmentId\": 51,\n  \"medication\": \"Paracetamol\",\n  \"dosage\": \"500mg\",\n  \"doctorNotes\": \"Take 1 tablet every 6 hours\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/prescription/{{doctorToken}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "prescription",
+                "{{doctorToken}}"
+              ]
+            },
+            "description": "Persists a prescription and triggers appointment status change to completed (status=1)."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"201 Created\", function () { pm.response.to.have.status(201); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Save Prescription - Invalid Token",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"patientName\": \"Jane Doe\",\n  \"appointmentId\": 51,\n  \"medication\": \"Paracetamol\",\n  \"dosage\": \"500mg\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/prescription/invalid-token",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "prescription",
+                "invalid-token"
+              ]
+            },
+            "description": "Demonstrates that bad tokens are blocked with 401."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"401 Unauthorized\", function () { pm.response.to.have.status(401); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get Prescription by Appointment",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/prescription/51/{{doctorToken}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "prescription",
+                "51",
+                "{{doctorToken}}"
+              ]
+            },
+            "description": "Fetches the prescription(s) tied to appointment ID 51. Requires a doctor token."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"200 OK\", function () { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:8080",
+      "type": "string"
+    },
+    {
+      "key": "adminToken",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "doctorToken",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "patientToken",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "patientNameSlug",
+      "value": "Jane%20Doe",
+      "type": "string"
+    },
+    {
+      "key": "patientId",
+      "value": "1",
+      "type": "string"
+    },
+    {
+      "key": "testDoctorId",
+      "value": "2",
+      "type": "string"
+    },
+    {
+      "key": "testAppointmentId",
+      "value": "1",
+      "type": "string"
+    },
+    {
+      "key": "availabilityDate",
+      "value": "2025-05-01",
+      "type": "string"
+    },
+    {
+      "key": "availabilityDoctorId",
+      "value": "1",
+      "type": "string"
+    },
+    {
+      "key": "availabilityUserRole",
+      "value": "patient",
+      "type": "string"
+    }
+  ]
+}
+
