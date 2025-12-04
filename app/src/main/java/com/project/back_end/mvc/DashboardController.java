@@ -13,7 +13,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 @RequiredArgsConstructor
 public class DashboardController {
 
-    TokenService tokenService ;
+    private final TokenService tokenService ;
 
 
     @GetMapping("/adminDashboard/{token}")

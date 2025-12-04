@@ -17,7 +17,7 @@ import java.util.Objects;
 @RequiredArgsConstructor
 public class PrescriptionService {
 
-    PrescriptionRepository prescriptionRepository;
+    private final PrescriptionRepository prescriptionRepository;
 
     @Transactional
     public ResponseEntity<Map<String, String>> savePrescription(Prescription prescription) {
