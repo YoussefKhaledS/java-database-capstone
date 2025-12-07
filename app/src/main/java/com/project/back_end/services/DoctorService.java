@@ -19,9 +19,9 @@ import java.util.stream.Collectors;
 @Service
 @RequiredArgsConstructor
 public class DoctorService {
-    DoctorRepository doctorRepository;
-    AppointmentRepository appointmentRepository;
-    TokenService tokenService ;
+    private final DoctorRepository doctorRepository;
+    private final AppointmentRepository appointmentRepository;
+    private final TokenService tokenService ;
 
 // 3. **Add @Transactional Annotation for Methods that Modify or Fetch Database Data**:
 //    - Methods like `getDoctorAvailability`, `getDoctors`, `findDoctorByName`, `filterDoctorsBy*` should be annotated with `@Transactional`.

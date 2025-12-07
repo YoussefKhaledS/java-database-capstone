@@ -3,7 +3,7 @@ package com.project.back_end.controllers;
 import com.project.back_end.models.Prescription;
 import com.project.back_end.services.AppointmentService;
 import com.project.back_end.services.PrescriptionService;
-import com.project.back_end.services.Service;
+import com.project.back_end.services.Services;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -19,7 +19,7 @@ import java.util.Map;
 public class PrescriptionController {
 
     private final PrescriptionService prescriptionService;
-    private final Service service;
+    private final Services services;
     private final AppointmentService appointmentService;
 
     @PostMapping("/{token}")
@@ -27,7 +27,7 @@ public class PrescriptionController {
             @PathVariable String token,
             @Valid @RequestBody Prescription prescription) {
         try {
-            ResponseEntity<Map<String, String>> validation = service.validateToken(token, "doctor");
+            ResponseEntity<Map<String, String>> validation = services.validateToken(token, "doctor");
             if (!validation.getStatusCode().is2xxSuccessful()) {
                 Map<String, String> body = validation.getBody() != null
                         ? new HashMap<>(validation.getBody())
@@ -52,7 +52,7 @@ public class PrescriptionController {
             @PathVariable Long appointmentId,
             @PathVariable String token) {
         try {
-            ResponseEntity<Map<String, String>> validation = service.validateToken(token, "doctor");
+            ResponseEntity<Map<String, String>> validation = services.validateToken(token, "doctor");
             if (!validation.getStatusCode().is2xxSuccessful()) {
                 Map<String, Object> body = validation.getBody() != null
                         ? new HashMap<>(validation.getBody())

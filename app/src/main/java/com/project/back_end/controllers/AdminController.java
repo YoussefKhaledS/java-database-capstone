@@ -2,7 +2,7 @@
 package com.project.back_end.controllers;
 
 import com.project.back_end.models.Admin;
-import com.project.back_end.services.Service;
+import com.project.back_end.services.Services;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -17,11 +17,11 @@ import java.util.Map;
 @RequiredArgsConstructor
 public class AdminController {
 
-    Service service;
+    private final Services services;
 
     @PostMapping("/login")
-    public ResponseEntity<Map<String, String>> adminLogin(@RequestBody Admin admin) {
-        return service.validateAdmin(admin);
+    public ResponseEntity<Map<String, String>> adminLogin(@RequestBody Map<String, String> login) {
+        return services.validateAdmin(login.get("username"), login.get("password"));
     }
 }
 

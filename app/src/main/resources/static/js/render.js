@@ -6,15 +6,25 @@ function selectRole(role) {
   if (role === "admin") {
     if (token) {
       window.location.href = `/adminDashboard/${token}`;
+    } else {
+      // If no token, open admin login modal
+      if (typeof openModal === 'function') {
+        openModal('adminLogin');
+      }
     }
-  } if (role === "patient") {
+  } else if (role === "patient") {
     window.location.href = "/pages/patientDashboard.html";
   } else if (role === "doctor") {
     if (token) {
       window.location.href = `/doctorDashboard/${token}`;
-    } else if (role === "loggedPatient") {
-      window.location.href = "loggedPatientDashboard.html";
+    } else {
+      // If no token, open doctor login modal
+      if (typeof openModal === 'function') {
+        openModal('doctorLogin');
+      }
     }
+  } else if (role === "loggedPatient") {
+    window.location.href = "loggedPatientDashboard.html";
   }
 }
 

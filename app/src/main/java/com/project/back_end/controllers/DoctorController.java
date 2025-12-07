@@ -2,7 +2,7 @@ package com.project.back_end.controllers;
 
 import com.project.back_end.models.Doctor;
 import com.project.back_end.services.DoctorService;
-import com.project.back_end.services.Service;
+import com.project.back_end.services.Services;
 import lombok.RequiredArgsConstructor;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
@@ -18,9 +18,9 @@ import java.util.Map;
 @RequiredArgsConstructor
 public class DoctorController {
 
-    private DoctorService doctorService;
+    private final DoctorService doctorService;
 
-    private Service service;
+    private final Services services;
 
     // 1. Get Doctor Availability
     @GetMapping("/availability/{user}/{doctorId}/{date}/{token}")
@@ -30,7 +30,7 @@ public class DoctorController {
             @PathVariable @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date,
             @PathVariable String token) {
         try {
-            ResponseEntity<Map<String, String>> validation = service.validateToken(token, user);
+            ResponseEntity<Map<String, String>> validation = services.validateToken(token, user);
             if (validation.getStatusCode() != HttpStatus.OK) {
                 return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
                         .body(Map.of("error", validation.getBody().get("result")));
@@ -62,19 +62,22 @@ public class DoctorController {
             @RequestBody Doctor doctor,
             @PathVariable String token) {
         try {
-            ResponseEntity<Map<String, String>> validation = service.validateToken(token, "admin");
+            ResponseEntity<Map<String, String>> validation = services.validateToken(token, "admin");
             if (validation.getStatusCode() != HttpStatus.OK) {
                 return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
                         .body(Map.of("error", validation.getBody().get("result")));
             }
 
             int added = doctorService.saveDoctor(doctor);
-            if (added != 1) {
+            if (added == 1) {
                 return ResponseEntity.status(HttpStatus.CREATED)
                         .body(Map.of("result", "Doctor added to db"));
-            } else {
+            } else if (added == -1) {
                 return ResponseEntity.status(HttpStatus.CONFLICT)
                         .body(Map.of("result", "Doctor already exists"));
+            } else {
+                return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                        .body(Map.of("error", "Failed to add doctor"));
             }
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
@@ -99,7 +102,7 @@ public class DoctorController {
             @RequestBody Doctor doctor,
             @PathVariable String token) {
         try {
-            ResponseEntity<Map<String, String>> validation = service.validateToken(token, "admin");
+            ResponseEntity<Map<String, String>> validation = services.validateToken(token, "admin");
             if (validation.getStatusCode() != HttpStatus.OK) {
                 return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
                         .body(Map.of("error", validation.getBody().get("result")));
@@ -124,7 +127,7 @@ public class DoctorController {
             @PathVariable Long id,
             @PathVariable String token) {
         try {
-            ResponseEntity<Map<String, String>> validation = service.validateToken(token, "admin");
+            ResponseEntity<Map<String, String>> validation = services.validateToken(token, "admin");
             if (validation.getStatusCode() != HttpStatus.OK) {
                 return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
                         .body(Map.of("error", validation.getBody().get("result")));
@@ -144,13 +147,17 @@ public class DoctorController {
     }
 
     // 7. Filter Doctors
-    @GetMapping("/filter/{name}/{time}/{speciality}")
+    // Uses query parameters so callers can omit any combination safely:
+    // /doctor/filter?name=Emily&time=AM&speciality=Dermatologist
+    // /doctor/filter?speciality=Dermatologist
+    // /doctor/filter (no params -> all doctors)
+    @GetMapping("/filter")
     public ResponseEntity<Map<String, Object>> filterDoctors(
-            @PathVariable String name,
-            @PathVariable String time,
-            @PathVariable String speciality) {
+            @RequestParam(required = false) String name,
+            @RequestParam(required = false) String time,
+            @RequestParam(required = false) String speciality) {
         try {
-            Map<String, Object> filtered = service.filterDoctor(name, speciality, time);
+            Map<String, Object> filtered = services.filterDoctor(name, speciality, time);
             return ResponseEntity.ok(filtered);
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)

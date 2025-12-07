@@ -19,9 +19,9 @@ import java.util.stream.Collectors;
 @Service
 @RequiredArgsConstructor
 public class PatientService {
-    PatientRepository patientRepository;
-    AppointmentRepository appointmentRepository;
-    TokenService tokenService;
+    private final PatientRepository patientRepository;
+    private final AppointmentRepository appointmentRepository;
+    private final TokenService tokenService;
 
     @Transactional
     public int createPatient(Patient patient){

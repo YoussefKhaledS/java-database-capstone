@@ -21,25 +21,10 @@ import java.util.Map;
 @RequiredArgsConstructor
 public class AppointmentService {
 
-    AppointmentRepository appointmentRepository;
-    TokenService tokenService;
-    PatientRepository patientRepository;
-    DoctorRepository doctorRepository;
-
-
-// 1. **Add @Service Annotation**:
-//    - To indicate that this class is a service layer class for handling business logic.
-//    - The `@Service` annotation should be added before the class declaration to mark it as a Spring service component.
-//    - Instruction: Add `@Service` above the class definition.
-
-// 2. **Constructor Injection for Dependencies**:
-//    - The `AppointmentService` class requires several dependencies like `AppointmentRepository`, `Service`, `TokenService`, `PatientRepository`, and `DoctorRepository`.
-//    - These dependencies should be injected through the constructor.
-//    - Instruction: Ensure constructor injection is used for proper dependency management in Spring.
-
-// 3. **Add @Transactional Annotation for Methods that Modify Database**:
-//    - The methods that modify or update the database should be annotated with `@Transactional` to ensure atomicity and consistency of the operations.
-//    - Instruction: Add the `@Transactional` annotation above methods that interact with the database, especially those modifying data.
+    private final AppointmentRepository appointmentRepository;
+    private final TokenService tokenService;
+    private final PatientRepository patientRepository;
+    private final DoctorRepository doctorRepository;
     @Transactional
     public int bookAppointment(Appointment appointment) throws Exception{
         try {
@@ -65,20 +50,12 @@ public class AppointmentService {
 
     @Transactional
     public ResponseEntity<Map<String, String>> cancelAppointment(Long id, String token) throws Exception {
-        // 1️⃣ Validate the token first
-        Map<String, String> validationResult = null ; // tokenService.validateToken(token, "patient"); // or "admin" depending on the role
-
-        if (!validationResult.isEmpty()) {
-            // Token is invalid
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                    .body(Map.of("result", "Invalid or expired token"));
-        }
-
-        // 2️⃣ Proceed with appointment cancellation
+        // Token validation is already done in the controller
         try {
             Appointment appointment = appointmentRepository.findById(id).orElse(null);
             if (appointment == null) {
-                return ResponseEntity.ok(Map.of("result", "Appointment not found"));
+                return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                        .body(Map.of("result", "Appointment not found"));
             } else {
                 appointmentRepository.delete(appointment);
                 return ResponseEntity.ok(Map.of("result", "Deleted Successfully"));
@@ -93,33 +70,44 @@ public class AppointmentService {
     public Map<String, Object> getAppointment(String pname, LocalDate date, String token) throws Exception {
         Map<String, Object> response = new HashMap<>();
 
-        // 1️⃣ Validate token (doctor role assumed)
-        Map<String, String> validationResult = null ; //tokenService.validateToken(token, "doctor");
-        if (!validationResult.isEmpty()) {
-            response.put("error", "Invalid or expired token");
+        // Token validation is already done in the controller
+        try {
+            // 1️⃣ Extract doctor email from token
+            String doctorEmail = tokenService.extractIdentifier(token);
+            if (doctorEmail == null || doctorEmail.isEmpty()) {
+                response.put("error", "Invalid token");
+                return response;
+            }
+
+            // 2️⃣ Find doctor by email to get doctor ID
+            com.project.back_end.models.Doctor doctor = doctorRepository.findByEmail(doctorEmail);
+            if (doctor == null) {
+                response.put("error", "Doctor not found");
+                return response;
+            }
+            Long doctorId = doctor.getId();
+
+            // 3️⃣ Determine start and end of the day
+            LocalDateTime startOfDay = date.atStartOfDay();
+            LocalDateTime endOfDay = date.atTime(LocalTime.MAX);
+
+            List<Appointment> appointments;
+
+            // 4️⃣ Fetch appointments for the doctor and date, filter by patient name if provided
+            if (pname == null || pname.isBlank()) {
+                appointments = appointmentRepository.findByDoctorIdAndAppointmentTimeBetween(doctorId, startOfDay, endOfDay);
+            } else {
+                appointments = appointmentRepository.findByDoctorIdAndPatient_NameContainingIgnoreCaseAndAppointmentTimeBetween(
+                        doctorId, pname, startOfDay, endOfDay);
+            }
+
+            // 5️⃣ Return appointments in a map
+            response.put("appointments", appointments);
+            return response;
+        } catch (Exception e) {
+            response.put("error", "Failed to fetch appointments: " + e.getMessage());
             return response;
         }
-
-        // 2️⃣ Extract doctor ID from token or validation result
-        Long doctorId = Long.parseLong(validationResult.get("userId")); // assuming token returns userId
-
-        // 3️⃣ Determine start and end of the day
-        LocalDateTime startOfDay = date.atStartOfDay();
-        LocalDateTime endOfDay = date.atTime(LocalTime.MAX);
-
-        List<Appointment> appointments;
-
-        // 4️⃣ Fetch appointments for the doctor and date, filter by patient name if provided
-        if (pname == null || pname.isBlank()) {
-            appointments = appointmentRepository.findByDoctorIdAndAppointmentTimeBetween(doctorId, startOfDay, endOfDay);
-        } else {
-            appointments = appointmentRepository.findByDoctorIdAndPatient_NameContainingIgnoreCaseAndAppointmentTimeBetween(
-                    doctorId, pname, startOfDay, endOfDay);
-        }
-
-        // 5️⃣ Return appointments in a map
-        response.put("appointments", appointments);
-        return response;
     }
 
     @Transactional

@@ -1,8 +1,11 @@
 import { openModal } from '../components/modals.js';
 import { API_BASE_URL } from '../config/config.js';
 
-const ADMIN_API = `${API_BASE_URL}/admin`;
+const ADMIN_API = `${API_BASE_URL}/admin/login`;
 const DOCTOR_API = `${API_BASE_URL}/doctor/login`;
+
+// Make openModal globally available
+window.openModal = openModal;
 
 window.onload = () => {
   const adminBtn = document.getElementById('adminLogin');
@@ -14,6 +17,18 @@ window.onload = () => {
 
   if (doctorBtn) {
     doctorBtn.addEventListener('click', () => openModal('doctorLogin'));
+  }
+  
+  // Handle role selection buttons on index page
+  const adminRoleBtn = document.getElementById('adminBtn');
+  const doctorRoleBtn = document.getElementById('doctorBtn');
+
+  if (adminRoleBtn) {
+    adminRoleBtn.addEventListener('click', () => openModal('adminLogin'));
+  }
+
+  if (doctorRoleBtn) {
+    doctorRoleBtn.addEventListener('click', () => openModal('doctorLogin'));
   }
 };
 

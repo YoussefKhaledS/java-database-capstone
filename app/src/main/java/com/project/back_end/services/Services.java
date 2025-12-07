@@ -12,15 +12,16 @@ import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.stereotype.Service;
 
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
-@org.springframework.stereotype.Service
+@Service
 @RequiredArgsConstructor
-public class Service {
+public class Services {
     private final TokenService tokenService;
     private final AdminRepository adminRepository;
     private final DoctorRepository doctorRepository;
@@ -43,14 +44,16 @@ public class Service {
     }
 
     @Transactional
-    public ResponseEntity<Map<String , String>> validateAdmin(Admin admin){
+    public ResponseEntity<Map<String , String>> validateAdmin(String username, String password){
         try{
-            Admin foundAdmin = adminRepository.findByUsername(admin.getUsername());
+            Admin foundAdmin = adminRepository.findByUsername(username);
             if(foundAdmin == null){
                 return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
                         .body(Map.of("error", "Admin not found"));
             }
-            if(foundAdmin.getPasswordHash().equals(admin.getPasswordHash())){
+            // Compare the plain password from request with stored passwordHash
+            // Based on the database, passwords are stored as plain text
+            if(foundAdmin.getPasswordHash().equals(password)){
                 String token = tokenService.generateToken(foundAdmin.getUsername());
                 return ResponseEntity.ok(Map.of("token", token));
             } else {

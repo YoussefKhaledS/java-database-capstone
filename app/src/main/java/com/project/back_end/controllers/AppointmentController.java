@@ -2,7 +2,7 @@ package com.project.back_end.controllers;
 
 import com.project.back_end.models.Appointment;
 import com.project.back_end.services.AppointmentService;
-import com.project.back_end.services.Service;
+import com.project.back_end.services.Services;
 import lombok.RequiredArgsConstructor;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
@@ -17,8 +17,8 @@ import java.util.Map;
 @RequiredArgsConstructor
 public class AppointmentController {
 
-    AppointmentService appointmentService;
-    Service service ;
+    private final AppointmentService appointmentService;
+    private final Services services;
 
     @GetMapping("/{date}/{patientName}/{token}")
     public ResponseEntity<Map<String, Object>> getAppointments(
@@ -28,7 +28,7 @@ public class AppointmentController {
 
         try{
             // 1️⃣ Validate token
-            if (service.validateToken(token, "doctor").getStatusCode()  != HttpStatus.OK) {
+            if (services.validateToken(token, "doctor").getStatusCode()  != HttpStatus.OK) {
                 return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
                         .body(Map.of("error", "Invalid or expired token"));
             }
@@ -49,11 +49,11 @@ public class AppointmentController {
     @PostMapping("/{token}")
     public ResponseEntity<Map<String, String>> bookAppointment(@PathVariable String token , @RequestBody Appointment appointment){
         try{
-            if(service.validateToken(token , "patient").getStatusCode() != HttpStatus.OK){
+            if(services.validateToken(token , "patient").getStatusCode() != HttpStatus.OK){
                 return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
                         .body(Map.of("error" , "Invalid or expired token"));
             }
-            int isValid = service.validateAppointment(appointment);
+            int isValid = services.validateAppointment(appointment);
             if(isValid == -1 ){
                 return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                         .body(Map.of("error" , "Doctor Does not exist"));
@@ -80,7 +80,7 @@ public class AppointmentController {
             @RequestBody Appointment appointment) {
         try{
             // Validate token for patient
-            ResponseEntity<Map<String, String>> validation = service.validateToken(token, "patient");
+            ResponseEntity<Map<String, String>> validation = services.validateToken(token, "patient");
             if (validation.getStatusCode() != HttpStatus.OK) {
                 return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
                         .body(Map.of("error", validation.getBody().get("result")));
@@ -102,7 +102,7 @@ public class AppointmentController {
             @PathVariable("token") String token) {
         try{
             // Validate token for patient
-            ResponseEntity<Map<String, String>> validation = service.validateToken(token, "patient");
+            ResponseEntity<Map<String, String>> validation = services.validateToken(token, "patient");
             if (validation.getStatusCode() != HttpStatus.OK) {
                 return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
                         .body(Map.of("error", validation.getBody().get("result")));

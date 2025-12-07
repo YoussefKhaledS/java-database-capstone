@@ -13,15 +13,15 @@ import org.springframework.web.bind.annotation.PathVariable;
 @RequiredArgsConstructor
 public class DashboardController {
 
-    TokenService tokenService ;
+    private final TokenService tokenService ;
 
 
     @GetMapping("/adminDashboard/{token}")
     public String adminDashboard(@PathVariable("token") String token) {
         String role = "admin";
-        String validationResponse = null;//tokenService.validateToken(token, role);
+        Boolean isValid = tokenService.validateToken(token, role);
 
-        if (validationResponse.isEmpty()) {
+        if (isValid != null && isValid) {
             return "admin/adminDashboard";
         } else {
             return "redirect:/";
@@ -31,9 +31,9 @@ public class DashboardController {
     @GetMapping("/doctorDashboard/{token}")
     public String doctorDashboard(@PathVariable("token") String token) {
         String role = "doctor";
-        String validationResponse = null;//tokenService.validateToken(token, role);
+        Boolean isValid = tokenService.validateToken(token, role);
 
-        if (validationResponse.isEmpty()) {
+        if (isValid != null && isValid) {
             return "doctor/doctorDashboard";
         } else {
             return "redirect:/";
