@@ -20,8 +20,8 @@ public class AdminController {
     private final Services services;
 
     @PostMapping("/login")
-    public ResponseEntity<Map<String, String>> adminLogin(@RequestBody Admin admin) {
-        return services.validateAdmin(admin);
+    public ResponseEntity<Map<String, String>> adminLogin(@RequestBody Map<String, String> login) {
+        return services.validateAdmin(login.get("username"), login.get("password"));
     }
 }
 
